@@ -1,0 +1,307 @@
+#include "mbed.h"
+
+Ticker milisecond;
+int ms=0,i=0;
+
+BusOut rows(PA_4,PA_5,PA_6,PA_7);
+BusInOut columns(PA_0,PA_1,PA_9,PA_8);
+BusOut transistors(PB_10,PB_4,PB_5,PB_3);
+
+int tus_b0=0,tus_h0=0,sayac0=10;
+int tus_b4=0,tus_h4=0,sayac4=10;
+int tus_b8=0,tus_h8=0,sayac8=10;
+int tus_b12=0,tus_h12=0,sayac12=10;
+
+int digit1=0,digit2=0,digit3=0,digit4=0;
+int next=0;
+
+void give_pulse()
+{
+    ms=1;
+}
+
+void key_detect(int Key, int &tus_h,int &tus_b,int &sayac)
+{
+
+    if(Key) {
+        if(tus_b==0) {
+            if(tus_h==0) {
+                sayac--;
+                if(sayac<0) {
+                    tus_h=1;
+                    tus_b=1;
+                    sayac=10;
+                }
+            }
+        }
+
+
+    } else {
+        tus_b=0;
+        sayac=10;
+    }
+}
+
+void keypad_detect()
+{
+
+    switch(i) {
+        case 0: {                                   //satır 1
+            rows=0x1;
+            key_detect(columns,tus_h0,tus_b0,sayac0);
+            break;
+        }
+        case 1: {                                   //satır 2
+            rows=0x2;
+            key_detect(columns,tus_h4,tus_b4,sayac4);
+            break;
+        }
+        case 2: {                                   //satır 3
+            rows=0x4;
+            key_detect(columns,tus_h8,tus_b8,sayac8);
+            break;
+        }
+        case 3: {                                   //satır 4
+            rows=0x8;
+            key_detect(columns,tus_h12,tus_b12,sayac12);
+            break;
+        }
+    }
+}
+
+void display_digit(int digit)
+{
+
+    switch(digit) {
+        case 24: {
+            rows=0x7;       // A
+            columns=0x7;
+            break;
+        }
+        case 20: {
+            rows=0x7;       //B
+            columns=0xC;
+            break;
+        }
+        case 18: {
+            rows=0x3;       //C
+            columns=0x9;
+            break;
+        }
+        case 17: {
+            rows=0x5;       //D
+            columns=0xE;
+            break;
+        }
+        case 40: {
+            rows=0x7;       //E
+            columns=0x9;
+            break;
+        }
+        case 36: {
+            rows=0x7;       //F
+            columns=0x1;
+            break;
+        }
+        case 34: {
+            rows=0x7;       //G
+            columns=0xD;
+            break;
+        }
+        case 33: {
+            rows=0x7;       //H
+            columns=0x6;
+            break;
+        }
+        case 72: {
+            rows=0x3;       //I
+            columns=0x0;
+            break;
+        }
+        case 68: {
+            rows=0x1;       //J
+            columns=0xE;
+            break;
+        }
+        case 66: {
+            rows=0x3;       //L
+            columns=0x8;
+            break;
+        }
+        case 65: {
+            rows=0x3;       //N
+            columns=0x7;
+            break;
+        }
+        case 136: {
+            rows=0x3;       //O
+            columns=0xF;
+            break;
+        }
+        case 132: {
+            rows=0x7;       //P
+            columns=0x3;
+            break;
+        }
+        case 130: {
+            rows=0x3;       //R
+            columns=0x3;
+            break;
+        }
+        case 129: {
+            rows=0x6;       //S
+            columns=0xD;
+            break;
+        }
+    }
+}
+
+void scan_7_segments(int digit1,int digit2,int digit3,int digit4)
+{
+    rows=0x0;
+    columns=0x0;
+
+    switch(i) {
+
+        case 4: {
+            transistors=0x01;
+            display_digit(digit1);
+            break;
+        }
+        case 5: {
+            transistors=0x02;
+            display_digit(digit2);
+            break;
+        }
+        case 6: {
+            transistors=0x04;
+            display_digit(digit3);
+            break;
+        }
+        case 7: {
+            transistors=0x08;
+            display_digit(digit4);
+            break;
+        }
+        default: {
+            transistors=0x00;
+            break;
+        }
+    }
+}
+
+void read_word()
+{
+    keypad_detect();
+    next=next%4;
+    switch (next) {
+        case 0: {
+            if(tus_h0) {
+                tus_h0=0;
+                digit1=columns+16;
+                next++;
+            }
+            if(tus_h4) {
+                tus_h4=0;
+                digit1=columns+32;
+                next++;
+            }
+            if(tus_h8) {
+                tus_h8=0;
+                digit1=columns+64;
+                next++;
+            }
+            if(tus_h12) {
+                tus_h12=0;
+                digit1=columns+128;
+                next++;
+            }
+        }
+        case 1: {
+            if(tus_h0) {
+                tus_h0=0;
+                digit2=columns+16;
+                next++;
+            }
+            if(tus_h4) {
+                tus_h4=0;
+                digit2=columns+32;
+                next++;
+            }
+            if(tus_h8) {
+                tus_h8=0;
+                digit2=columns+64;
+                next++;
+            }
+            if(tus_h12) {
+                tus_h12=0;
+                digit2=columns+128;
+                next++;
+            }
+        }
+        case 2: {
+            if(tus_h0) {
+                tus_h0=0;
+                digit3=columns+16;
+                next++;
+            }
+            if(tus_h4) {
+                tus_h4=0;
+                digit3=columns+32;
+                next++;
+            }
+            if(tus_h8) {
+                tus_h8=0;
+                digit3=columns+64;
+                next++;
+            }
+            if(tus_h12) {
+                tus_h12=0;
+                digit3=columns+128;
+                next++;
+            }
+        }
+        case 3: {
+            if(tus_h0) {
+                tus_h0=0;
+                digit4=columns+16;
+                next++;
+            }
+            if(tus_h4) {
+                tus_h4=0;
+                digit4=columns+32;
+                next++;
+            }
+            if(tus_h8) {
+                tus_h8=0;
+                digit4=columns+64;
+                next++;
+            }
+            if(tus_h12) {
+                tus_h12=0;
+                digit4=columns+128;
+                next++;
+            }
+        }
+    }
+}
+
+int main()
+{
+
+    milisecond.attach(&give_pulse, 0.001); // her 1 ms geçtiğinde çalışır
+
+    while (true) {
+        if(ms) {
+            ms=0;
+            i++;
+            i=i%8;
+            transistors=0x0;
+            columns.input();
+            columns.mode(PullDown);
+            read_word();
+            columns.output();
+            scan_7_segments(digit4, digit3, digit2, digit1);
+        }
+    }
+}
