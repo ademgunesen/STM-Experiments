@@ -1,0 +1,393 @@
+#include "mbed.h"
+Ticker milisecond;
+int ms=0,i=0;
+
+BusOut rows(PA_4,PA_5,PA_6,PA_7);
+BusInOut columns(PA_0,PA_1,PA_9,PA_8);
+BusOut transistors(PB_10,PB_4,PB_5,PB_3);
+
+int tus_b0=0,tus_h0=0,sayac0=5;
+int tus_b4=0,tus_h4=0,sayac4=5;
+int tus_b8=0,tus_h8=0,sayac8=5;
+int tus_b12=0,tus_h12=0,sayac12=5;
+
+int digit1=0,digit2=0,digit3=0,digit4=0;
+int imlec=0,sayi_1=0, sayi_2=0;
+int in=0, operation=0, digit_entered=0, digit=0, read=0, op_entered=0, calculate=0, clear=0, next_op=0;
+
+void give_pulse(){
+    ms=1;
+}
+
+void key_detect(int Key, int &tus_h,int &tus_b,int &sayac){
+
+    if(Key) {
+        if(tus_b==0) {
+            if(tus_h==0) {
+                sayac--;
+                if(sayac<0) {
+                    tus_h=1;
+                    tus_b=1;
+                    sayac=5;
+                }
+            }
+        }
+
+
+    } else {
+        tus_b=0;
+        sayac=5;
+    }
+}
+
+void keypad_detect(){
+    transistors=0x0;
+    switch(i) {
+        case 0: {                                   //satır 1
+            rows=0x1;
+            key_detect(columns,tus_h0,tus_b0,sayac0);
+            break;
+        }
+        case 1: {                                   //satır 2
+            rows=0x2;
+            key_detect(columns,tus_h4,tus_b4,sayac4);
+            break;
+        }
+        case 2: {                                   //satır 3
+            rows=0x4;
+            key_detect(columns,tus_h8,tus_b8,sayac8);
+            break;
+        }
+        case 3: {                                   //satır 4
+            rows=0x8;
+            key_detect(columns,tus_h12,tus_b12,sayac12);
+            break;
+        }
+    }
+}
+
+void read_keypad(){
+    keypad_detect();
+    if(tus_h0) {
+        tus_h0=0;
+        in=columns+16;
+        read=1;
+    }
+    if(tus_h4) {
+        tus_h4=0;
+        in=columns+32;
+        read=1;;
+    }
+    if(tus_h8) {
+        tus_h8=0;
+        in=columns+64;
+        read=1;;
+    }
+    if(tus_h12) {
+        tus_h12=0;
+        in=columns+128;
+        read=1;;
+    }
+}
+
+void translate_keys(){
+    if(read) {
+        read=0;
+        switch(in) {
+            case 24: {
+                digit_entered=1;
+                digit=1;
+                break;
+            }
+            case 20: {
+                digit_entered=1;
+                digit=2;
+                break;
+            }
+            case 18: {
+                digit_entered=1;
+                digit=3;
+                break;
+            }
+            case 17: {
+                clear=1;        //CE
+                op_entered=1;
+                break;
+            }
+            case 40: {
+                digit_entered=1;
+                digit=4;
+                break;
+            }
+            case 36: {
+                digit_entered=1;
+                digit=5;
+                break;
+            }
+            case 34: {
+                digit_entered=1;
+                digit=6;
+                break;
+            }
+            case 33: {
+                if(imlec>5){
+                    calculate=1;
+                    next_op=2;
+                }
+                else
+                operation=2;        //+
+                imlec=5;
+                break;
+            }
+            case 72: {
+                digit_entered=1;
+                digit=7;
+                break;
+            }
+            case 68: {
+                digit_entered=1;
+                digit=8;
+                break;
+            }
+            case 66: {
+                digit_entered=1;
+                digit=9;
+                break;
+            }
+            case 65: {
+                if(imlec>5){
+                    calculate=1;
+                    next_op=3;
+                }
+                else
+                operation=3;        //-
+                imlec=5;
+                break;
+            }
+            case 136: {
+                digit_entered=1;
+                digit=0;
+                break;
+            }
+            case 132: {
+                if(imlec>5){
+                    calculate=1;
+                    next_op=4;
+                }
+                else
+                operation=4;        //x
+                imlec=5;
+                break;
+            }
+            case 130: {
+                if(imlec>5){
+                    calculate=1;
+                    next_op=5;
+                }
+                else
+                operation=5;        //:
+                imlec=5;
+                break;
+            }
+            case 129: {
+                calculate=1;         //=
+                imlec=5;
+                break;
+            }
+        }
+    }
+}
+
+void  handle_inputs(){
+    if(digit_entered) {
+        digit_entered=0;
+        if(imlec<4) {
+            if(imlec==0) {
+                sayi_1=digit;
+            } else
+                sayi_1=sayi_1*10+digit;
+            imlec++;
+        }
+        if(imlec>4&&imlec<9) {
+            if(imlec==5) {
+                sayi_2=digit;
+            } else
+                sayi_2=sayi_2*10+digit;
+            imlec++;
+        }
+    }
+}
+
+void do_operations(){    
+    if(clear==1){
+            clear=0;
+            sayi_1=0;
+            operation=0;
+            sayi_2=0;
+            imlec=0;
+    }
+    if(calculate==1){
+        calculate=0;
+            switch(operation) {
+                case 2: {
+                    sayi_1+=sayi_2;
+                    break;
+                }
+                case 3: {
+                    sayi_1-=sayi_2;
+                    break;
+                }
+                case 4: {
+                    sayi_1*=sayi_2;
+                    break;
+                }
+                case 5: {
+                    sayi_1/=sayi_2;
+                    break;
+                }
+            }
+        operation=next_op;
+        next_op=0;
+    }
+}
+
+void calculate_digits(int sayi){
+    digit1=sayi%10;
+    sayi/=10;
+    digit2=sayi%10;
+    sayi/=10;
+    digit3=sayi%10;
+    sayi/=10;
+    digit4=sayi%10;
+    sayi/=10;
+    if(digit4==0){
+        digit4=10;
+        if(digit3==0){
+            digit3=10;
+            if(digit2==0){
+                digit2=10;
+            }
+        }
+    }
+}
+
+void display_digit(int digit){
+    switch(digit) {
+        case 0: {
+            rows=0x3;       
+            columns=0xF;
+            break;
+        }
+        case 1: {
+            rows=0x0;       
+            columns=0x6;
+            break;
+        }
+        case 2: {
+            rows=0x5;       
+            columns=0xB;
+            break;
+        }
+        case 3: {
+            rows=0x4;       
+            columns=0xF;
+            break;
+        }
+        case 4: {
+            rows=0x6;       
+            columns=0x6;
+            break;
+        }
+        case 5: {
+            rows=0x6;       
+            columns=0xD;
+            break;
+        }
+        case 6: {
+            rows=0x7;       
+            columns=0xD;
+            break;
+        }
+        case 7: {
+            rows=0x0;       
+            columns=0x7;
+            break;
+        }
+        case 8: {
+            rows=0x7;       
+            columns=0xF;
+            break;
+        }
+        case 9: {
+            rows=0x6;       
+            columns=0xF;
+            break;
+        }
+        case 10: {
+            rows=0x0;       
+            columns=0x0;
+            break;
+        }
+    }
+}
+
+void scan_7_segments(int digit1,int digit2,int digit3,int digit4)
+{
+
+    switch(i) {
+
+        case 5: {
+            transistors=0x1;
+            display_digit(digit1);
+            break;
+        }
+        case 6: {
+            transistors=0x2;
+            display_digit(digit2);
+            break;
+        }
+        case 7: {
+            transistors=0x4;
+            display_digit(digit3);
+            break;
+        }
+        case 8: {
+            transistors=0x8;
+            display_digit(digit4);
+            break;
+        }
+        default: {
+            transistors=0x0;
+            break;
+        }
+    }
+}
+    
+    int main() {
+
+        milisecond.attach(&give_pulse, 0.001); // her 1 ms geçtiğinde çalışır
+
+        while (true) {
+            if(ms) {
+                ms=0;
+                i++;
+                i=i%9;
+                if(i<4){
+                columns.input();
+                columns.mode(PullDown);
+                read_keypad();
+                translate_keys();
+                handle_inputs();
+                do_operations();
+                if(imlec<6)
+                calculate_digits(sayi_1);
+                else
+                calculate_digits(sayi_2);
+                }
+                if(i>4){
+                columns.output();
+                scan_7_segments(digit1, digit2, digit3, digit4);
+                }   
+            } 
+        }
+    }
