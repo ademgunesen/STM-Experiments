@@ -1,0 +1,14 @@
+#include "mbed.h"
+BusOut leds(PA_0, PA_1, PA_9, PA_8, PA_4, PA_5, PA_6, PA_7);
+
+int main() {
+    int i=0;
+    while(true){
+        leds=0x00;      //turn off all leds
+        leds[i]=1;      //turn on the related LED
+        leds[7-i];      //turn on the corresponding LED 
+        wait(0.2);      //200 ms delay to make it visible
+        i++;            //move on to the next LEDs
+        i=i%8;          //continue from the start LEDs
+    }
+}
