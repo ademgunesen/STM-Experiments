@@ -1,0 +1,195 @@
+#include "mbed.h"
+
+Ticker milisecond;
+
+
+BusOut leds(PA_0, PA_1, PA_9, PA_8, PA_4, PA_5, PA_6, PA_7);
+BusOut transistors(PB_10,PB_4,PB_5,PB_3);
+DigitalIn KeyH(PC_0);
+DigitalIn KeyM(PC_1);
+DigitalIn KeyU(PB_9);
+DigitalIn KeyD(PB_8);
+
+int ms=0,counted_ms=0,second_1=0,minute=0,hour=0,i=0;
+
+void display_digit(int digit){
+        switch(digit)
+        {
+            case 0: {
+            leds=0x3F;
+                break;}
+            case 1: {
+            leds=0x06;
+                break;}
+            case 2: {
+            leds=0x5B;
+                break;}
+            case 3: {
+            leds=0x4F;
+                break;}
+            case 4: {
+            leds=0x66;
+                break;}
+            case 5: {
+            leds=0x6D;
+                break;}
+            case 6: {
+            leds=0x7D;
+                break;}
+            case 7: {
+            leds=0x07;
+                break;}
+            case 8: {
+            leds=0x7F;
+                break;}
+            case 9: {
+            leds=0x6F;
+                break;}             
+        }
+}
+
+void give_pulse() {
+    ms=1;
+}
+
+void calculate_digits(int sayi,int &digit1,int &digit2){
+    digit1=sayi%10;
+    sayi/=10;
+    digit2=sayi%10;
+    sayi/=10;
+    }
+
+void calculate_clock(int &counted_ms,int &second_1,int &minute,int &hour){
+                                              //dakika ve saati hesapla
+        if(counted_ms>1000){
+            second_1++;
+            counted_ms=0;
+        }
+        if(second_1==60){
+            minute++;
+            second_1=0;
+        }        
+        if(minute==60){
+            hour++;
+            minute=0;
+        }
+        if(hour==24){
+            hour=0;
+        }
+}
+
+void scan_7_segments(int digit1,int digit2,int digit3,int digit4){
+    i++;
+    i=i%4;
+    switch(i){
+        case 0:
+            display_digit(digit1);
+            transistors=0x01;
+            break;
+        case 1:
+            display_digit(digit2);
+            transistors=0x02;
+            break;
+        case 2:
+            display_digit(digit3);
+            transistors=0x04;
+            break;
+        case 3:
+            display_digit(digit4);
+            transistors=0x08;
+            break;
+    }
+}
+
+void key_detect(int Key, int &tus_h,int &tus_b,int &sayac, int &aehiz){
+    
+        if(!Key){
+            if(tus_b==1){
+                if(tus_h==0){
+                    sayac=sayac-aehiz;
+                    if(sayac<0){
+                        tus_h=1;
+                        tus_b=1;
+                        sayac=500;
+                        aehiz++;
+                    }                                 
+                }
+            }
+            if(tus_b==0){
+                if(tus_h==0){
+                    sayac=sayac-5;
+                    if(sayac<0){
+                        tus_h=1;
+                        tus_b=1;
+                        sayac=500;
+                    }                                 
+                }
+            }
+
+        }
+        else{
+            tus_b=0;
+            sayac=250;
+            aehiz=1;
+        }
+}
+    
+int main() {
+    
+    int counted_ms=0;
+    int minute=15;
+    int hour=0;
+    int digit1=3,digit2=4,digit3=1,digit4=2;
+    int second_1=0;
+    int tus_bu=0,tus_hu=0,sayacu=250,aehizu=1;
+    int tus_bd=0,tus_hd=0,sayacd=250,aehizd=1;
+    
+    milisecond.attach(&give_pulse, 0.001); // her 1 ms geçtiğinde çalışır
+    
+    
+    while (true) {
+        
+        if(ms){                            // toplam geçen ms hesaplanır
+            ms=0;
+            counted_ms++;
+            calculate_clock(counted_ms,second_1,minute,hour);
+            if(!KeyH){
+                counted_ms=0;
+                key_detect(KeyU, tus_hu, tus_bu, sayacu, aehizu);
+                    if(tus_hu){
+                        tus_hu=0;
+                        hour++;
+                    }
+                key_detect(KeyD, tus_hd, tus_bd, sayacd, aehizd);
+                    if(tus_hd){
+                        tus_hd=0;
+                        hour--;
+                    } 
+            }
+            if(!KeyM){
+                counted_ms=0;
+                key_detect(KeyU, tus_hu, tus_bu, sayacu, aehizu);
+                if(tus_hu){                                     
+                    tus_hu=0;
+                    minute++;
+                }
+                key_detect(KeyD, tus_hd, tus_bd, sayacd, aehizd);
+                if(tus_hd){
+                    tus_hd=0;
+                    minute--;
+                    } 
+            }
+            if(minute<0){
+                minute=59;
+                hour--;
+                }
+            if(hour<0){
+                hour=23;}
+            calculate_digits(minute, digit1, digit2);
+            calculate_digits(hour, digit3, digit4);        
+            scan_7_segments(digit1,digit2,digit3,digit4);
+        }
+
+
+    }
+}
