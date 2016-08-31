@@ -1,0 +1,108 @@
+#include "mbed.h"
+
+BusOut leds(PA_0, PA_1, PA_8, PA_9, PA_4, PA_5, PA_6, PA_7);
+BusOut transistors(PB_10,PB_4,PB_5,PB_3);
+DigitalIn KeyA(PC_1);
+
+void key_detect(int &tus_h,int &tus_b,int &sayac){  // dedects whether it is pressed or not
+    while(1){
+        if(!KeyA){
+            if(tus_b==0){
+                if(tus_h==0){
+                    sayac=sayac-1;                  //count up for sequential presses
+                    if(sayac==0)                    //debounced
+                    {
+                        tus_h=1;
+                        tus_b=1;
+                    }                   
+                }
+            }
+            else{
+                break;
+            }
+        }
+        else{
+            tus_b=0;
+            sayac=50;
+            break;
+        }
+    }
+}
+
+void display_digit(int digit){                  //arranges 7 segment display to show corresponding number
+        switch(digit)
+        {
+            case 0: {
+            leds=0x3F;
+                break;}
+            case 1: {
+            leds=0x06;
+                break;}
+            case 2: {
+            leds=0x5B;
+                break;}
+            case 3: {
+            leds=0x4F;
+                break;}
+            case 4: {
+            leds=0x66;
+                break;}
+            case 5: {
+            leds=0x6D;
+                break;}
+            case 6: {
+            leds=0x7D;
+                break;}
+            case 7: {
+            leds=0x07;
+                break;}
+            case 8: {
+            leds=0x7F;
+                break;}
+            case 9: {
+            leds=0x6F;
+                break;}             
+        }
+}
+
+void calculate_digits(int basma_sayisi,int &digit1,int &digit2,int &digit3,int &digit4){ //converts binary to BCD
+    digit1=basma_sayisi%10;
+    basma_sayisi/=10;
+    digit2=basma_sayisi%10;
+    basma_sayisi/=10;
+    digit3=basma_sayisi%10;
+    basma_sayisi/=10;
+    digit4=basma_sayisi%10;
+    }
+        
+int main(){
+    int tus_b=0,tus_h=0,sayac=50;
+    int basma_sayisi=0;
+    int digit1=0,digit2=0,digit3=0,digit4=0;
+
+
+    while(1){   
+        if(tus_h){
+        tus_h=0;
+        basma_sayisi++;           //counts debounced pressings
+        calculate_digits(basma_sayisi,digit1,digit2,digit3,digit4);
+        }
+        
+
+        display_digit(digit1);
+        transistors=0x1;            //enable first 7segment
+        wait_ms(1);                 //show it enough time
+        display_digit(digit2);      //scan other 7segments
+        transistors=0x2;
+        wait_ms(1);
+        display_digit(digit3);
+        transistors=0x4;
+        wait_ms(1);
+        display_digit(digit4);
+        transistors=0x8;
+        wait_ms(1);
+        key_detect(tus_h,tus_b,sayac);    //look for a press
+    
+    }
+
+}
