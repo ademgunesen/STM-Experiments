@@ -1,0 +1,12 @@
+#include "mbed.h"
+
+BusOut leds(PA_0, PA_1, PA_8, PA_9, PA_4, PA_5, PA_6, PA_7);
+int main() {
+    int adem=1;
+    while(true){
+        leds=adem;
+        wait(0.5);      //500 ms delay
+        adem*=2;        //activate next LED
+        adem=adem%255;  //continue from firs LED
+    }
+}
